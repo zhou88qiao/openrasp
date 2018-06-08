@@ -172,6 +172,7 @@ void check(const char *type, zval *params TSRMLS_DC)
 }
 
 extern int include_or_eval_handler(ZEND_OPCODE_HANDLER_ARGS);
+extern int echo_handler(ZEND_OPCODE_HANDLER_ARGS);
 
 PHP_GINIT_FUNCTION(openrasp_hook)
 {
@@ -197,6 +198,7 @@ PHP_MINIT_FUNCTION(openrasp_hook)
     }
 
     zend_set_user_opcode_handler(ZEND_INCLUDE_OR_EVAL, include_or_eval_handler);
+    zend_set_user_opcode_handler(ZEND_ECHO, echo_handler);
     return SUCCESS;
 }
 

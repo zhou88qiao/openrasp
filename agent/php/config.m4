@@ -465,6 +465,7 @@ int main() {
     hook/openrasp_pdo.cc \
     hook/openrasp_file.cc \
     hook/openrasp_ssrf.cc \
+    hook/openrasp_echo.cc \ 
     openrasp_inject.cc \
     openrasp_log.cc \
     openrasp_shared_alloc.c  \
