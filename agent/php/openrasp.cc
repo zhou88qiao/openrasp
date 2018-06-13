@@ -17,7 +17,8 @@
 #include "openrasp.h"
 #include "openrasp_ini.h"
 
-extern "C" {
+extern "C"
+{
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -30,6 +31,7 @@ extern "C" {
 #include "openrasp_hook.h"
 #include "openrasp_inject.h"
 #include "openrasp_security_policy.h"
+#include "openrasp_output_detect.h"
 #include "openrasp_fswatch.h"
 #include <new>
 
@@ -61,6 +63,18 @@ PHP_INI_ENTRY1("openrasp.block_status_code", "302", PHP_INI_SYSTEM, OnUpdateOpen
 PHP_INI_ENTRY1("openrasp.plugin_maxstack", "100", PHP_INI_SYSTEM, OnUpdateOpenraspIntGEZero, &openrasp_ini.plugin_maxstack)
 PHP_INI_ENTRY1("openrasp.log_maxstack", "10", PHP_INI_SYSTEM, OnUpdateOpenraspIntGEZero, &openrasp_ini.log_maxstack)
 PHP_INI_END()
+
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION <= 3)
+static PHP_FUNCTION(openrasp_ob_handler);
+ZEND_BEGIN_ARG_INFO_EX(arginfo_openrasp_ob_handler, 0, 0, 1)
+ZEND_ARG_INFO(0, input)
+ZEND_ARG_INFO(0, mode)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry openrasp_functions[] = {
+    PHP_FE(openrasp_ob_handler, arginfo_openrasp_ob_handler)
+        PHP_FE_END};
+#endif
 
 PHP_GINIT_FUNCTION(openrasp)
 {
@@ -98,6 +112,7 @@ PHP_MINIT_FUNCTION(openrasp)
     result = PHP_MINIT(openrasp_inject)(INIT_FUNC_ARGS_PASSTHRU);
     result = PHP_MINIT(openrasp_security_policy)(INIT_FUNC_ARGS_PASSTHRU);
     result = PHP_MINIT(openrasp_fswatch)(INIT_FUNC_ARGS_PASSTHRU);
+    result = PHP_MINIT(openrasp_output_detect)(INIT_FUNC_ARGS_PASSTHRU);
     is_initialized = true;
     return SUCCESS;
 }
@@ -126,6 +141,7 @@ PHP_RINIT_FUNCTION(openrasp)
         // openrasp_inject must be called before openrasp_log cuz of request_id
         result = PHP_RINIT(openrasp_inject)(INIT_FUNC_ARGS_PASSTHRU);
         result = PHP_RINIT(openrasp_log)(INIT_FUNC_ARGS_PASSTHRU);
+        result = PHP_RINIT(openrasp_output_detect)(INIT_FUNC_ARGS_PASSTHRU);
     }
     return SUCCESS;
 }
@@ -175,7 +191,11 @@ zend_module_entry openrasp_module_entry = {
     STANDARD_MODULE_HEADER,
 #endif
     "openrasp",
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION <= 3)
+    openrasp_functions,
+#else
     NULL,
+#endif
     PHP_MINIT(openrasp),
     PHP_MSHUTDOWN(openrasp),
     PHP_RINIT(openrasp),
@@ -232,3 +252,10 @@ static bool make_openrasp_root_dir(TSRMLS_D)
 #endif
     return true;
 }
+
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION <= 3)
+static PHP_FUNCTION(openrasp_ob_handler)
+{
+    openrasp_detect_output(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+}
+#endif

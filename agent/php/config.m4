@@ -468,6 +468,7 @@ int main() {
     hook/openrasp_echo.cc \ 
     openrasp_inject.cc \
     openrasp_log.cc \
+    openrasp_output_detect.cc \
     openrasp_shared_alloc.c  \
     openrasp_shared_alloc_mmap.c  \
     openrasp_v8.cc \
