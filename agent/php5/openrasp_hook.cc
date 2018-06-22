@@ -39,7 +39,7 @@ typedef struct _track_vars_pair_t
         global_hook_handlers.insert(scope##_##name##_##type##_handler); \
     }
 
-#define REGISTER_HOOK_HANDLER(name, type)   \
+#define REGISTER_HOOK_HANDLER(name, type) \
     REGISTER_HOOK_HANDLER_EX(name, global, type)
 
 ZEND_DECLARE_MODULE_GLOBALS(openrasp_hook)
@@ -52,9 +52,7 @@ bool openrasp_zval_in_request(zval *item TSRMLS_DC)
     int size = sizeof(pairs) / sizeof(pairs[0]);
     for (int index = 0; index < size; ++index)
     {
-        if (!PG(http_globals)[pairs[index].id] 
-        && !zend_is_auto_global(pairs[index].name, strlen(pairs[index].name) TSRMLS_CC)
-        && Z_TYPE_P(PG(http_globals)[pairs[index].id]) != IS_ARRAY)
+        if (!PG(http_globals)[pairs[index].id] && !zend_is_auto_global(pairs[index].name, strlen(pairs[index].name) TSRMLS_CC) && Z_TYPE_P(PG(http_globals)[pairs[index].id]) != IS_ARRAY)
         {
             return 0;
         }
@@ -106,23 +104,9 @@ bool openrasp_check_callable_black(const char *item_name, uint item_name_length 
     return openrasp_ini.callable_blacklists.find(item_name) != openrasp_ini.callable_blacklists.end();
 }
 
-void handle_block(TSRMLS_D)
+void add_location_header(const char *block_url, const char*request_id TSRMLS_DC)
 {
-#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION == 3)
-    if (OG(ob_nesting_level) && (OG(active_ob_buffer).status || OG(active_ob_buffer).erase)) {
-        php_end_ob_buffer(0, 0 TSRMLS_CC);
-    }
-#elif (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 4)
-    int status = php_output_get_status(TSRMLS_C);
-    if (status & PHP_OUTPUT_WRITTEN) {
-        php_output_discard(TSRMLS_C);
-    }
-#else
-#  error "Unsupported PHP version, please contact OpenRASP team for more information"
-#endif
-
-    char *block_url = openrasp_ini.block_url;
-    char *request_id = OPENRASP_INJECT_G(request_id);
+    
     if (!SG(headers_sent))
     {
         char *redirect_header = nullptr;
@@ -138,6 +122,28 @@ void handle_block(TSRMLS_D)
         }
         efree(redirect_header);
     }
+}
+
+void handle_block(TSRMLS_D)
+{
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION == 3)
+    if (OG(ob_nesting_level) && (OG(active_ob_buffer).status || OG(active_ob_buffer).erase))
+    {
+        php_end_ob_buffer(0, 0 TSRMLS_CC);
+    }
+#elif (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 4)
+    int status = php_output_get_status(TSRMLS_C);
+    if (status & PHP_OUTPUT_WRITTEN)
+    {
+        php_output_discard(TSRMLS_C);
+    }
+#else
+#error "Unsupported PHP version, please contact OpenRASP team for more information"
+#endif
+
+    char *block_url = openrasp_ini.block_url;
+    char *request_id = OPENRASP_INJECT_G(request_id);
+    add_location_header(block_url, request_id TSRMLS_CC);
     /* body 中插入 script 进行重定向 */
     {
         char *redirect_script = nullptr;
@@ -191,8 +197,8 @@ PHP_GSHUTDOWN_FUNCTION(openrasp_hook)
 PHP_MINIT_FUNCTION(openrasp_hook)
 {
     ZEND_INIT_MODULE_GLOBALS(openrasp_hook, PHP_GINIT(openrasp_hook), PHP_GSHUTDOWN(openrasp_hook));
-    
-    for (auto& single_handler : global_hook_handlers)
+
+    for (auto &single_handler : global_hook_handlers)
     {
         single_handler(TSRMLS_C);
     }

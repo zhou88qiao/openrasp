@@ -62,6 +62,9 @@ PHP_INI_ENTRY1("openrasp.timeout_ms", "100", PHP_INI_SYSTEM, OnUpdateOpenraspInt
 PHP_INI_ENTRY1("openrasp.block_status_code", "302", PHP_INI_SYSTEM, OnUpdateOpenraspIntGEZero, &openrasp_ini.block_status_code)
 PHP_INI_ENTRY1("openrasp.plugin_maxstack", "100", PHP_INI_SYSTEM, OnUpdateOpenraspIntGEZero, &openrasp_ini.plugin_maxstack)
 PHP_INI_ENTRY1("openrasp.log_maxstack", "10", PHP_INI_SYSTEM, OnUpdateOpenraspIntGEZero, &openrasp_ini.log_maxstack)
+PHP_INI_ENTRY1("openrasp.xss_min_param_length", "15", PHP_INI_SYSTEM, OnUpdateOpenraspIntGEZero, &openrasp_ini.xss_min_param_length)
+PHP_INI_ENTRY1("openrasp.xss_max_detection_num", "10", PHP_INI_SYSTEM, OnUpdateOpenraspIntGEZero, &openrasp_ini.xss_max_detection_num)
+PHP_INI_ENTRY1("openrasp.xss_filter_regex", "<![\\-\\[A-Za-z]|<([A-Za-z]{1,12})[\\/ >]", PHP_INI_SYSTEM, OnUpdateOpenraspCString, &openrasp_ini.xss_filter_regex)
 PHP_INI_END()
 
 #if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION <= 3)

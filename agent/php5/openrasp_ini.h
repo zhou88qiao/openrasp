@@ -44,6 +44,9 @@ class Openrasp_ini
     unsigned int slowquery_min_rows = 500;
     unsigned int plugin_maxstack = 100;
     unsigned int log_maxstack = 10;
+    unsigned int xss_min_param_length = 15;
+    unsigned int xss_max_detection_num = 10;
+    char *xss_filter_regex;
     bool enforce_policy = false;
     char *block_url;
     std::unordered_set<std::string> hooks_ignore;

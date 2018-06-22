@@ -288,6 +288,7 @@ typedef void (*fill_param_t)(HashTable *ht);
 
 void handle_block(TSRMLS_D);
 void check(const char *type, zval *params TSRMLS_DC);
+void add_location_header(const char *block_url, const char*request_id TSRMLS_DC);
 bool openrasp_check_type_ignored(const char *item_name, uint item_name_length TSRMLS_DC);
 bool openrasp_check_callable_black(const char *item_name, uint item_name_length TSRMLS_DC);
 bool openrasp_zval_in_request(zval *item TSRMLS_DC);
