@@ -16,14 +16,19 @@
 
 #include "openrasp_hook.h"
 
+extern "C"
+{
+#include "ext/standard/php_fopen_wrappers.h"
+}
+
 /**
  * 文件相关hook点
  */
 PRE_HOOK_FUNCTION(file, readFile);
 PRE_HOOK_FUNCTION(readfile, readFile);
 PRE_HOOK_FUNCTION(file_get_contents, readFile);
-PRE_HOOK_FUNCTION(file_put_contents, webshell_file_put_contents);
 PRE_HOOK_FUNCTION(file_put_contents, writeFile);
+PRE_HOOK_FUNCTION(file_put_contents, webshell_file_put_contents); //must after PRE_HOOK_FUNCTION(file_put_contents, writeFile);
 PRE_HOOK_FUNCTION(fopen, readFile);
 PRE_HOOK_FUNCTION(fopen, writeFile);
 PRE_HOOK_FUNCTION(copy, copy);
@@ -54,30 +59,34 @@ static const char *flag_to_type(int open_flags, bool file_exist)
 //return value estrdup
 char *openrasp_real_path(char *filename, int filename_len, zend_bool use_include_path, bool handle_unresolved TSRMLS_DC)
 {
-    php_url *resource = php_url_parse_ex(filename, filename_len);
-    char *real_path = nullptr;
-    if (resource && resource->scheme)
+    char *resolved_path = nullptr;
+    resolved_path = php_resolve_path(filename, filename_len, use_include_path ? PG(include_path) : NULL TSRMLS_CC);
+    if (nullptr == resolved_path)
     {
-        real_path = estrdup(filename);
-    }
-    else
-    {
-        char expand_path[MAXPATHLEN];
-        if (!expand_filepath(filename, expand_path TSRMLS_CC))
+        const char *p;
+        for (p = filename; isalnum((int)*p) || *p == '+' || *p == '-' || *p == '.'; p++)
+            ;
+        if ((*p == ':') && (p - filename > 1) && (p[1] == '/') && (p[2] == '/'))
         {
-            return real_path;
+            php_stream_wrapper *wrapper;
+            wrapper = php_stream_locate_url_wrapper(filename, nullptr, STREAM_LOCATE_WRAPPERS_ONLY TSRMLS_CC);
+            if (wrapper && (wrapper != &php_stream_http_wrapper || !handle_unresolved))
+            {
+                resolved_path = estrdup(filename);
+            }
         }
-        real_path = php_resolve_path(expand_path, strlen(expand_path), use_include_path ? PG(include_path) : NULL TSRMLS_CC);
-        if (!real_path && handle_unresolved)
+        else
         {
-            real_path = estrdup(expand_path);
+            char expand_path[MAXPATHLEN];
+            char real_path[MAXPATHLEN];
+            expand_filepath(filename, expand_path TSRMLS_CC);
+            if (VCWD_REALPATH(expand_path, real_path) || handle_unresolved)
+            {
+                resolved_path = estrdup(expand_path);
+            }
         }
     }
-    if (resource)
-    {
-        php_url_free(resource);
-    }
-    return real_path;
+    return resolved_path;
 }
 
 static void check_file_operation(const char *type, char *filename, int filename_len, zend_bool use_include_path TSRMLS_DC)
@@ -148,16 +157,19 @@ void pre_global_file_put_contents_webshell_file_put_contents(OPENRASP_INTERNAL_F
     {
         char *real_path = openrasp_real_path(Z_STRVAL_PP(path), Z_STRLEN_PP(path),
                                              (argc == 3 && Z_TYPE_PP(flags) == IS_LONG && (Z_LVAL_PP(flags) & PHP_FILE_USE_INCLUDE_PATH)), true TSRMLS_CC);
-        zval *attack_params = NULL;
-        MAKE_STD_ZVAL(attack_params);
-        array_init(attack_params);
-        add_assoc_zval(attack_params, "name", *path);
-        Z_ADDREF_P(*path);
-        add_assoc_string(attack_params, "realpath", real_path, 0);
-        zval *plugin_message = NULL;
-        MAKE_STD_ZVAL(plugin_message);
-        ZVAL_STRING(plugin_message, _("Webshell detected - File dropper backdoor"), 1);
-        openrasp_buildin_php_risk_handle(1, "webshell_file_put_contents", 100, attack_params, plugin_message TSRMLS_CC);
+        if (real_path)
+        {
+            zval *attack_params = NULL;
+            MAKE_STD_ZVAL(attack_params);
+            array_init(attack_params);
+            add_assoc_zval(attack_params, "name", *path);
+            Z_ADDREF_P(*path);
+            add_assoc_string(attack_params, "realpath", real_path, 0);
+            zval *plugin_message = NULL;
+            MAKE_STD_ZVAL(plugin_message);
+            ZVAL_STRING(plugin_message, _("Webshell detected - File dropper backdoor"), 1);
+            openrasp_buildin_php_risk_handle(1, "webshell_file_put_contents", 100, attack_params, plugin_message TSRMLS_CC);
+        }
     }
 }
 
@@ -270,12 +282,19 @@ void pre_global_copy_copy(OPENRASP_INTERNAL_FUNCTION_PARAMETERS)
         if (source_real_path)
         {
             char *target_real_path = openrasp_real_path(target, target_len, false, true TSRMLS_CC);
-            zval *params;
-            MAKE_STD_ZVAL(params);
-            array_init(params);
-            add_assoc_string(params, "source", source_real_path, 0);
-            add_assoc_string(params, "dest", target_real_path, 0);
-            check("copy", params TSRMLS_CC);
+            if (target_real_path)
+            {
+                zval *params;
+                MAKE_STD_ZVAL(params);
+                array_init(params);
+                add_assoc_string(params, "source", source_real_path, 0);
+                add_assoc_string(params, "dest", target_real_path, 0);
+                check("copy", params TSRMLS_CC);
+            }
+            else
+            {
+                efree(source_real_path);
+            }
         }
     }
 }
@@ -297,12 +316,19 @@ void pre_global_rename_rename(OPENRASP_INTERNAL_FUNCTION_PARAMETERS)
         if (source_real_path)
         {
             char *target_real_path = openrasp_real_path(target, target_len, false, true TSRMLS_CC);
-            zval *params;
-            MAKE_STD_ZVAL(params);
-            array_init(params);
-            add_assoc_string(params, "source", source_real_path, 0);
-            add_assoc_string(params, "dest", target_real_path, 0);
-            check("rename", params TSRMLS_CC);
+            if (target_real_path)
+            {
+                zval *params;
+                MAKE_STD_ZVAL(params);
+                array_init(params);
+                add_assoc_string(params, "source", source_real_path, 0);
+                add_assoc_string(params, "dest", target_real_path, 0);
+                check("rename", params TSRMLS_CC);
+            }
+            else
+            {
+                efree(source_real_path);
+            }
         }
     }
 }

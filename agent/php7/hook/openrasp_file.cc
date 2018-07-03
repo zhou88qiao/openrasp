@@ -22,8 +22,8 @@
 PRE_HOOK_FUNCTION(file, readFile);
 PRE_HOOK_FUNCTION(readfile, readFile);
 PRE_HOOK_FUNCTION(file_get_contents, readFile);
-PRE_HOOK_FUNCTION(file_put_contents, webshell_file_put_contents);
 PRE_HOOK_FUNCTION(file_put_contents, writeFile);
+PRE_HOOK_FUNCTION(file_put_contents, webshell_file_put_contents);
 PRE_HOOK_FUNCTION(fopen, readFile);
 PRE_HOOK_FUNCTION(fopen, writeFile);
 PRE_HOOK_FUNCTION(copy, copy);
@@ -133,14 +133,17 @@ void pre_global_file_put_contents_webshell_file_put_contents(OPENRASP_INTERNAL_F
         openrasp_zval_in_request(data))
     {
         zend_string *real_path = openrasp_real_path(Z_STRVAL_P(filename), Z_STRLEN_P(filename), flags & PHP_FILE_USE_INCLUDE_PATH, true);
-        zval attack_params;
-        array_init(&attack_params);
-        add_assoc_zval(&attack_params, "name", filename);
-        Z_ADDREF_P(filename);
-        add_assoc_str(&attack_params, "realpath", real_path);
-        zval plugin_message;
-        ZVAL_STRING(&plugin_message, _("Webshell detected - File dropper backdoor"));
-        openrasp_buildin_php_risk_handle(1, "webshell_file_put_contents", 100, &attack_params, &plugin_message);
+        if (real_path)
+        {
+            zval attack_params;
+            array_init(&attack_params);
+            add_assoc_zval(&attack_params, "name", filename);
+            Z_ADDREF_P(filename);
+            add_assoc_str(&attack_params, "realpath", real_path);
+            zval plugin_message;
+            ZVAL_STRING(&plugin_message, _("Webshell detected - File dropper backdoor"));
+            openrasp_buildin_php_risk_handle(1, "webshell_file_put_contents", 100, &attack_params, &plugin_message);
+        }
     }
 }
 
@@ -169,7 +172,7 @@ static inline void fopen_common_handler(OPENRASP_INTERNAL_FUNCTION_PARAMETERS)
     zend_string *filename, *mode;
     zend_bool use_include_path;
     mode = nullptr;
-    
+
     // ZEND_PARSE_PARAMETERS_START(2, 3)
     // Z_PARAM_STR(filename)
     // Z_PARAM_STR(mode)
@@ -237,11 +240,18 @@ void pre_global_copy_copy(OPENRASP_INTERNAL_FUNCTION_PARAMETERS)
     if (source_real_path)
     {
         zend_string *dest_real_path = openrasp_real_path(ZSTR_VAL(dest), ZSTR_LEN(dest), false, true);
-        zval params;
-        array_init(&params);
-        add_assoc_str(&params, "source", source_real_path);
-        add_assoc_str(&params, "dest", dest_real_path);
-        check(check_type, &params);
+        if (dest_real_path)
+        {
+            zval params;
+            array_init(&params);
+            add_assoc_str(&params, "source", source_real_path);
+            add_assoc_str(&params, "dest", dest_real_path);
+            check(check_type, &params);
+        }
+        else
+        {
+            zend_string_release(source_real_path);
+        }
     }
 }
 
