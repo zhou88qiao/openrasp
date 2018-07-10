@@ -171,8 +171,8 @@ static void migrate_hash_values(zval *dest, const zval *src, std::vector<keys_fi
     zval **origin_zv;
     for (keys_filter filter:filters)
     {
-        if (Z_TYPE_P(src) == IS_ARRAY &&
-        zend_hash_find(Z_ARRVAL_P(src), ZEND_STRS(filter.origin_key_str), (void **)&origin_zv) == SUCCESS &&
+        if (src && Z_TYPE_P(src) == IS_ARRAY &&
+        zend_hash_find(Z_ARRVAL_P(src), filter.origin_key_str, strlen(filter.origin_key_str) + 1, (void **)&origin_zv) == SUCCESS &&
         Z_TYPE_PP(origin_zv) == IS_STRING)
         {
             if (filter.value_filter)
@@ -187,6 +187,10 @@ static void migrate_hash_values(zval *dest, const zval *src, std::vector<keys_fi
                 add_assoc_zval(dest, filter.new_key_str, *origin_zv);
                 Z_ADDREF_PP(origin_zv);
             }
+        }
+        else
+        {
+            add_assoc_string(dest, filter.new_key_str, "", 1);
         }
     }
 }
@@ -208,12 +212,12 @@ static void init_alarm_request_info(TSRMLS_D)
     MAKE_STD_ZVAL(OPENRASP_LOG_G(alarm_request_info));
     array_init(OPENRASP_LOG_G(alarm_request_info));
 
-    if (PG(http_globals)[TRACK_VARS_SERVER] &&
-    (Z_TYPE_P(PG(http_globals)[TRACK_VARS_SERVER]) == IS_ARRAY || zend_is_auto_global(ZEND_STRL("_SERVER") TSRMLS_CC)))
+    zval *migrate_src = nullptr;
+    if (PG(http_globals)[TRACK_VARS_SERVER] || zend_is_auto_global(ZEND_STRL("_SERVER") TSRMLS_CC))
     {
-        migrate_hash_values(OPENRASP_LOG_G(alarm_request_info), PG(http_globals)[TRACK_VARS_SERVER], alarm_filters);
+        migrate_src = PG(http_globals)[TRACK_VARS_SERVER];
     }
-
+    migrate_hash_values(OPENRASP_LOG_G(alarm_request_info), migrate_src, alarm_filters);
     add_assoc_string(OPENRASP_LOG_G(alarm_request_info), "event_type", "attack", 1);
     add_assoc_string(OPENRASP_LOG_G(alarm_request_info), "server_hostname", host_name, 1);
     add_assoc_string(OPENRASP_LOG_G(alarm_request_info), "server_type", "PHP", 1);
@@ -699,6 +703,11 @@ static void openrasp_log_init_globals(zend_openrasp_log_globals *openrasp_log_gl
             if (resource->scheme && (!strcmp(resource->scheme, "tcp") || !strcmp(resource->scheme, "udp"))) {
                 alarm_appender = static_cast<log_appender>(alarm_appender | SYSLOG_APPENDER);
             }
+            else
+            {
+                openrasp_error(E_WARNING, LOG_ERROR, 
+                _("Invalid url scheme in syslog server address: '%s', expecting 'tcp:' or 'udp:'."), openrasp_ini.syslog_server_address);
+            }
             php_url_free(resource);
         } else {
             openrasp_error(E_WARNING, LOG_ERROR, 
@@ -791,7 +800,7 @@ PHP_RINIT_FUNCTION(openrasp_log)
 	long now = (long)time(NULL);
     OPENRASP_LOG_G(formatted_date_suffix) = php_format_date(ZEND_STRL(DEFAULT_LOG_FILE_SUFFIX), now, 1 TSRMLS_CC);
     init_openrasp_loggers(TSRMLS_C);
-    init_alarm_request_info(TSRMLS_C);
+    init_alarm_request_info(TSRMLS_C);               
     init_policy_request_info(TSRMLS_C);
     return SUCCESS;
 }
