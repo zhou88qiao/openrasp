@@ -164,6 +164,10 @@ static void request_uri_path_filter(zval *origin_zv, zval *new_zv)
     {
         ZVAL_STRINGL(new_zv, haystack, found - haystack, 1);
     }
+    else
+    {
+        ZVAL_STRING(new_zv, haystack, 1);
+    }
 }
 
 static void migrate_hash_values(zval *dest, const zval *src, std::vector<keys_filter> &filters)
@@ -315,7 +319,7 @@ static php_stream **openrasp_log_stream_zval_find(rasp_logger_entry *logger, log
                 }
                 else
                 {
-                    openrasp_error(E_WARNING, LOG_ERROR, _("Fail to connect syslog server %s."), openrasp_ini.syslog_server_address);                
+                    openrasp_error(E_WARNING, LOG_ERROR, _("Unable to contact syslog server %s"), openrasp_ini.syslog_server_address);                
                 }
                 efree(res);
                 OPENRASP_LOG_G(last_retry_time) = now;
