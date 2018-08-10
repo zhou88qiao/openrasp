@@ -134,9 +134,18 @@ var algorithmConfig = {
         action: 'block',
         protocols: [
             'file',
-            'dict',
             'gopher',
-            'php'
+
+            // java specific
+            'jar',
+            'netdoc',
+
+            // php specific
+            'dict',
+            'php',
+            'phar',
+            'compress.zlib',
+            'compress.bzip2'
         ]
     },
 
@@ -201,10 +210,23 @@ var algorithmConfig = {
     include_protocol: {
         action: 'block',
         protocols: [
+            'file',
+            'gopher',
+
+            // java specific
+            'jar',
+            'netdoc',
+
+            // php stream
             'http',
             'https',
+
+            // php specific
+            'dict',
             'php',
-            'file'
+            'phar',
+            'compress.zlib',
+            'compress.bzip2'
         ]
     },
     // // 文件包含 - 包含目录
@@ -226,7 +248,9 @@ var algorithmConfig = {
         protocols: [
             'ftp',
             'dict',
-            'gopher'
+            'gopher',
+            'jar',
+            'netdoc'
         ]
     },
     // XXE - 使用 file 协议读取内容，可能误报，默认 log
@@ -266,6 +290,11 @@ var algorithmConfig = {
         action: 'block'
     }
 }
+
+// 将所有拦截开关设置为 log
+// Object.keys(algorithmConfig).forEach(function (name) {
+//     algorithmConfig[name].action = 'log'
+// })
 
 const clean = {
     action:     'ignore',
@@ -327,6 +356,11 @@ var ntfsRegex       = /::\$(DATA|INDEX)$/i
 
 // 常用函数
 String.prototype.replaceAll = function(token, tokenValue) {
+    // 空值判断，防止死循环
+    if (! token || token.length == 0) {
+        return this
+    }
+
     var index  = 0;
     var string = this;
 
@@ -434,7 +468,12 @@ function is_absolute_path(path, os) {
 function is_outside_webroot(appBasePath, realpath, path) {
     var verdict = false
 
-    if (realpath.indexOf(appBasePath) == -1 && hasTraversal(path)) {
+    // servlet 3.X 之后可能会获取不到 appBasePath，或者为空
+    // 提前加个判断，防止因为bug导致误报
+    if (! appBasePath || appBasePath.length == 0) {
+        verdict = false
+    }
+    else if (realpath.indexOf(appBasePath) == -1 && hasTraversal(path)) {
         verdict = true
     }
 
@@ -682,7 +721,7 @@ if (RASP.get_jsengine() !== 'v8') {
                 }
                 else if (features['into_outfile'] && i < tokens_lc.length - 1 && tokens_lc[i] == 'into')
                 {
-                    if (tokens_lc[i + 1] == 'outfile')
+                    if (tokens_lc[i + 1] == 'outfile' || tokens_lc[i + 1] == 'dumpfile' )
                     {
                         reason = _("SQLi - Detected INTO OUTFILE phrase in sql query")
                         break
@@ -1310,6 +1349,17 @@ plugin.register('command', function (params, context) {
 plugin.register('xxe', function (params, context) {
     var items = params.entity.split('://')
 
+    if (algorithmConfig.xxe_protocol.action != 'ignore') {
+        // 检查 windows + SMB 协议，防止泄露 NTLM 信息
+        if (params.entity.startsWith('\\\\')) {
+            return {
+                action:     algorithmConfig.xxe_protocol.action,
+                message:    _("XXE - Using dangerous protocol SMB"),
+                confidence: 100
+            }                
+        }        
+    }
+
     if (items.length >= 2) {
         var protocol = items[0]
         var address  = items[1]
@@ -1324,14 +1374,6 @@ plugin.register('xxe', function (params, context) {
                 }
             }
 
-            // 检查 windows + SMB 协议，防止泄露 NTLM 信息
-            if (params.entity.startsWith('\\\\')) {
-                return {
-                    action:     algorithmConfig.xxe_protocol.action,
-                    message:    _("XXE - Using dangerous protocol SMB"),
-                    confidence: 100
-                }                
-            }
         }
 
         // file 协议 + 绝对路径, e.g

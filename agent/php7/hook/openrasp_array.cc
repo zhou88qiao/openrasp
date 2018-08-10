@@ -30,7 +30,8 @@ static void _callable_handler(const char *functionname, uint functionname_len, c
 	if (openrasp_check_callable_black(functionname, functionname_len))
 	{
 		zval attack_params;
-		ZVAL_STRING(&attack_params, functionname);
+		array_init(&attack_params);
+		add_assoc_string(&attack_params, "function", const_cast<char *>(functionname));
 		zval plugin_message;
 		ZVAL_STR(&plugin_message, strpprintf(0, _("Webshell detected: using '%s' function"), functionname));
 		openrasp_buildin_php_risk_handle(1, check_type, 100, &attack_params, &plugin_message);
@@ -52,15 +53,18 @@ static void check_callable_function(zend_fcall_info fci, const char *check_type)
 
 void pre_global_array_filter_callable(OPENRASP_INTERNAL_FUNCTION_PARAMETERS)
 {
-	zval *array;
-	zend_fcall_info fci = empty_fcall_info;
-	zend_fcall_info_cache fci_cache = empty_fcall_info_cache;
-
-	if (zend_parse_parameters(MIN(2, ZEND_NUM_ARGS()), "af", &array, &fci, &fci_cache) != SUCCESS)
+	if (ZEND_NUM_ARGS() > 1)
 	{
-		return;
+		zval *array;
+		zend_fcall_info fci = empty_fcall_info;
+		zend_fcall_info_cache fci_cache = empty_fcall_info_cache;
+
+		if (zend_parse_parameters(MIN(2, ZEND_NUM_ARGS()), "af", &array, &fci, &fci_cache) != SUCCESS)
+		{
+			return;
+		}
+		check_callable_function(fci, check_type);
 	}
-	check_callable_function(fci, check_type);
 }
 
 void pre_global_array_walk_callable(OPENRASP_INTERNAL_FUNCTION_PARAMETERS)
