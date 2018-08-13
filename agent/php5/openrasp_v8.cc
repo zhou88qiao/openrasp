@@ -186,9 +186,43 @@ static void v8native_antlr4(const v8::FunctionCallbackInfo<v8::Value> &info)
 #endif
 }
 
+static void v8native_antlr4_cmd(const v8::FunctionCallbackInfo<v8::Value> &info)
+{
+#ifdef HAVE_NATIVE_ANTLR4
+    if (info.Length() >= 1 && info[0]->IsString())
+    {
+        antlr4::ANTLRInputStream input(*v8::String::Utf8Value(info[0]));
+        SQLLexer lexer(&input);
+        antlr4::CommonTokenStream output(&lexer);
+        output.fill();
+        auto tokens = output.getTokens();
+        int length = tokens.size();
+        v8::Isolate *isolate = info.GetIsolate();
+        v8::Local<v8::Array> arr = v8::Array::New(isolate, length);
+        for (int i = 0; i < length - 1; i++)
+        {
+            v8::Local<v8::String> token;
+            if (V8STRING_N(tokens[i]->getText().c_str()).ToLocal(&token))
+            {
+                arr->Set(i, token);
+            }
+        }
+        if(lexer.error_code == 0){
+            arr->Set(length, "token_correct");
+        }
+        else{
+            arr->Set(length, "token_error");
+        }
+        
+        info.GetReturnValue().Set(arr);
+    }
+#endif
+}
+
 intptr_t external_references[] = {
     reinterpret_cast<intptr_t>(v8native_log),
     reinterpret_cast<intptr_t>(v8native_antlr4),
+    reinterpret_cast<intptr_t>(v8native_antlr4_cmd),
     0,
 };
 
@@ -243,6 +277,13 @@ static v8::StartupData init_js_snapshot(TSRMLS_D)
             .ToLocalChecked()
             .As<v8::Object>()
             ->Set(V8STRING_I("sql_tokenize").ToLocalChecked(), sql_tokenize);
+            
+        v8::Local<v8::Function> cmd_tokenize = v8::Function::New(isolate, v8native_antlr4_cmd);
+        context->Global()
+            ->Get(context, V8STRING_I("RASP").ToLocalChecked())
+            .ToLocalChecked()
+            .As<v8::Object>()
+            ->Set(V8STRING_I("cmd_tokenize").ToLocalChecked(), cmd_tokenize);
 #endif
         for (auto plugin_src : process_globals.plugin_src_list)
         {

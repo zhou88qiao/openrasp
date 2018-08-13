@@ -140,6 +140,7 @@ PHP_MSHUTDOWN_FUNCTION(openrasp_v8);
 #ifdef HAVE_NATIVE_ANTLR4
 #include <antlr4-runtime/antlr4-runtime.h>
 #include "antlr/SQLLexer.h"
+#include "antlr/BashCpp.h"
 class TokenizeErrorListener : public antlr4::BaseErrorListener
 {
 public:

@@ -1288,6 +1288,43 @@ plugin.register('command', function (params, context) {
                 confidence: 100
             }
         }
+        var reason = false;
+        var parameters = context.parameter || {}
+        Object.keys(parameters).some(function (name) {
+            // 覆盖两种情况，后者仅PHP支持
+            // ?id=XXXX
+            // ?filter[category_id]=XXXX
+            var value_list
+            if (typeof parameters[name][0] == 'string') {
+                value_list = parameters[name]
+            } else {
+                value_list = Object.values(parameters[name][0])
+            }
+        
+
+            for (var i = 0; i < value_list.length; i ++) {
+                var value = value_list[i]
+                // 简单识别用户输入
+                if (cmd.indexOf(value) == -1) {
+                    continue
+                }
+                
+                var tokens     = RASP.cmd_tokenize(cmd)
+
+                // 去掉用户输入再次匹配
+                var tokens2 = RASP.cmd_tokenize(cmd.replaceAll(value, ''))
+                if (tokens.length - tokens2.length > 1 || tokens[tokens.length-1] !== tokens2[tokens2.length-1]) {
+                    reason =  _("Command execution - Command structure altered by user input, request parameter name: %1%", [name]);
+                }
+            }
+        })
+        if(reason){
+            return {
+                action:     algorithmConfig.command_userinput.action,
+                message:    reason,
+                confidence: 100
+            }
+        }
 
         // 1.0 之前会增加命令注入检测，以及一个bash/cmd解释器，请耐心等待~
     }
