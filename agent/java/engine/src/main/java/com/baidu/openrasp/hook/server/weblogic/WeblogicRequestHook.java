@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.baidu.openrasp.hook;
+package com.baidu.openrasp.hook.server.weblogic;
 
-import com.baidu.openrasp.HookHandler;
 import com.baidu.openrasp.hook.server.ServerRequestHook;
 import javassist.CannotCompileException;
 import javassist.CtClass;
@@ -25,10 +24,11 @@ import javassist.NotFoundException;
 import java.io.IOException;
 
 /**
- * Created by zhuming01 on 6/28/17.
- * All rights reserved
+ * @author anyang
+ * @Description: TODO
+ * @date 2018/8/27 20:09
  */
-public class WeblogicJspBaseHook extends ServerRequestHook {
+public class WeblogicRequestHook extends ServerRequestHook {
 
     /**
      * (none-javadoc)
@@ -51,8 +51,6 @@ public class WeblogicJspBaseHook extends ServerRequestHook {
         String srcBefore = getInvokeStaticSrc(ServerRequestHook.class, "checkRequest",
                 "$0,$1,$2", Object.class, Object.class, Object.class);
         insertBefore(ctClass, "service", hookDesc, srcBefore);
-        String srcAfter = getInvokeStaticSrc(HookHandler.class, "onServiceExit", "");
-        insertAfter(ctClass, "service", hookDesc, srcAfter, true);
     }
 
 }

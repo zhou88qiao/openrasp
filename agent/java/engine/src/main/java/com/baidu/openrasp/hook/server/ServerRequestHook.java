@@ -18,6 +18,7 @@ package com.baidu.openrasp.hook.server;
 
 import com.baidu.openrasp.HookHandler;
 import com.baidu.openrasp.hook.AbstractClassHook;
+import com.baidu.openrasp.tool.StackTrace;
 import javassist.CannotCompileException;
 import javassist.CtClass;
 import javassist.NotFoundException;
@@ -50,6 +51,7 @@ public abstract class ServerRequestHook extends AbstractClassHook {
      * @param response 响应实体
      */
     public static void checkRequest(Object filter, Object request, Object response) {
+        System.out.println(StackTrace.getStackTrace()+"**********");
         HookHandler.checkFilterRequest(filter, request, response);
     }
 

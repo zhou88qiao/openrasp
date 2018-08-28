@@ -22,6 +22,7 @@ import com.baidu.openrasp.hook.file.*;
 import com.baidu.openrasp.hook.server.catalina.*;
 import com.baidu.openrasp.hook.server.jetty.*;
 import com.baidu.openrasp.hook.server.resin.*;
+import com.baidu.openrasp.hook.server.weblogic.*;
 import com.baidu.openrasp.hook.sql.SQLDriverManagerHook;
 import com.baidu.openrasp.hook.sql.SQLPreparedStatementHook;
 import com.baidu.openrasp.hook.sql.SQLResultSetHook;
@@ -66,7 +67,6 @@ public class CustomClassTransformer implements ClassFileTransformer {
         addHook(new SQLDriverManagerHook());
         addHook(new SQLStatementHook());
         addHook(new SQLResultSetHook());
-        addHook(new WeblogicJspBaseHook());
         addHook(new XXEHook());
         addHook(new JspCompilationContextHook());
         addHook(new TomcatStartupHook());
@@ -91,6 +91,11 @@ public class CustomClassTransformer implements ClassFileTransformer {
         addHook(new ResinHttpInputHook());
         addHook(new SQLPreparedStatementHook());
         addHook(new FileRenameHook());
+        addHook(new WeblogicStartupHook());
+        addHook(new WeblogicParseParamHook());
+        addHook(new WeblogicRequestHook());
+        addHook(new WeblogicPreRequestHook());
+        addHook(new WeblogicHttpInputHook());
     }
 
     private void addHook(AbstractClassHook hook) {
@@ -114,6 +119,7 @@ public class CustomClassTransformer implements ClassFileTransformer {
                             ProtectionDomain domain, byte[] classfileBuffer) throws IllegalClassFormatException {
         for (final AbstractClassHook hook : hooks) {
             if (hook.isClassMatched(className)) {
+                System.out.println(className+"+++++++++++++++++++++");
                 CtClass ctClass = null;
                 try {
                     ClassPool classPool = new ClassPool();

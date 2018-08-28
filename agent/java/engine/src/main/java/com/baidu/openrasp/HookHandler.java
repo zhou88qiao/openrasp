@@ -165,6 +165,7 @@ public class HookHandler {
     }
 
     public static void onInputStreamRead(int ret, Object inputStream) {
+        System.out.println("111111111111111");
         if (ret != -1 && requestCache.get() != null) {
             AbstractRequest request = requestCache.get();
             if (request.getInputStream() == null) {
@@ -177,6 +178,7 @@ public class HookHandler {
     }
 
     public static void onInputStreamRead(int ret, Object inputStream, byte[] bytes) {
+        System.out.println("22222222222222");
         if (ret != -1 && requestCache.get() != null) {
             AbstractRequest request = requestCache.get();
             if (request.getInputStream() == null) {
@@ -189,6 +191,7 @@ public class HookHandler {
     }
 
     public static void onInputStreamRead(int ret, Object inputStream, byte[] bytes, int offset, int len) {
+        System.out.println("33333333333333333333333");
         if (ret != -1 && requestCache.get() != null) {
             AbstractRequest request = requestCache.get();
             if (request.getInputStream() == null) {
