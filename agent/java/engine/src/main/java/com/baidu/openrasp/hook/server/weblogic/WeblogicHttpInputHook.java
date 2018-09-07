@@ -10,14 +10,14 @@ import java.io.IOException;
 
 /**
  * @author anyang
- * @Description: TODO
+ * @Description: 获取weblogic的请求body
  * @date 2018/8/27 20:29
  */
 public class WeblogicHttpInputHook extends ServerInputHook {
 
     @Override
     public boolean isClassMatched(String className) {
-        return "weblogic/utils/io/ByteBufferInputStream".equals(className);
+        return "weblogic/servlet/internal/ServletInputStreamImpl".equals(className);
     }
 
     @Override
@@ -25,9 +25,9 @@ public class WeblogicHttpInputHook extends ServerInputHook {
         String srcRead1 = getInvokeStaticSrc(HookHandler.class, "onInputStreamRead",
                 "$_,$0", int.class, Object.class);
         insertAfter(ctClass, "read", "()I", srcRead1);
-//        String srcRead2 = getInvokeStaticSrc(HookHandler.class, "onInputStreamRead",
-//                "$_,$0,$1", int.class, Object.class, byte[].class);
-//        insertAfter(ctClass, "read", "([BII)I", srcRead2);
+        String srcRead2 = getInvokeStaticSrc(HookHandler.class, "onInputStreamRead",
+                "$_,$0,$1", int.class, Object.class, byte[].class);
+        insertAfter(ctClass, "read", "([B)I", srcRead2);
         String srcRead3 = getInvokeStaticSrc(HookHandler.class, "onInputStreamRead",
                 "$_,$0,$1,$2,$3", int.class, Object.class, byte[].class, int.class, int.class);
         insertAfter(ctClass, "read", "([BII)I", srcRead3);

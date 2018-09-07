@@ -96,6 +96,9 @@ public class CustomClassTransformer implements ClassFileTransformer {
         addHook(new WeblogicRequestHook());
         addHook(new WeblogicPreRequestHook());
         addHook(new WeblogicHttpInputHook());
+        addHook(new WeblogicHttpOutputHook());
+        addHook(new WeblogicXssHook());
+        addHook(new WeblogicConsolePasswordChecker());
     }
 
     private void addHook(AbstractClassHook hook) {
@@ -119,7 +122,7 @@ public class CustomClassTransformer implements ClassFileTransformer {
                             ProtectionDomain domain, byte[] classfileBuffer) throws IllegalClassFormatException {
         for (final AbstractClassHook hook : hooks) {
             if (hook.isClassMatched(className)) {
-                System.out.println(className+"+++++++++++++++++++++");
+                System.out.println(className+"++++++++++++++++");
                 CtClass ctClass = null;
                 try {
                     ClassPool classPool = new ClassPool();
