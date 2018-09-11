@@ -24,6 +24,7 @@ import com.baidu.openrasp.plugin.checker.local.SqlStatementChecker;
 import com.baidu.openrasp.plugin.checker.local.WeblogicConsoleChecker;
 import com.baidu.openrasp.plugin.checker.policy.SqlConnectionChecker;
 import com.baidu.openrasp.plugin.checker.policy.TomcatSecurityChecker;
+import com.baidu.openrasp.plugin.checker.policy.WeblogicSecurityChecker;
 import com.baidu.openrasp.request.AbstractRequest;
 import com.google.gson.Gson;
 
@@ -62,7 +63,8 @@ public class CheckParameter {
 
         // 安全基线检测
         POLICY_SQL_CONNECTION("sqlConnection", new SqlConnectionChecker()),
-        POLICY_TOMCAT_START("tomcatStart", new TomcatSecurityChecker());
+        POLICY_TOMCAT_START("tomcatStart", new TomcatSecurityChecker()),
+        POLICY_WEBLOGIC_START("weblogicStart",new WeblogicSecurityChecker());
 
         String name;
         Checker checker;

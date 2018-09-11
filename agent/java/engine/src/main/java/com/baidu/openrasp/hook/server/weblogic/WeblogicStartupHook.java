@@ -18,6 +18,7 @@ package com.baidu.openrasp.hook.server.weblogic;
 
 import com.baidu.openrasp.HookHandler;
 import com.baidu.openrasp.hook.server.ServerStartupHook;
+import com.baidu.openrasp.plugin.checker.CheckParameter;
 import com.baidu.openrasp.tool.Reflection;
 import com.baidu.openrasp.tool.model.ApplicationModel;
 import javassist.CannotCompileException;
@@ -51,5 +52,6 @@ public class WeblogicStartupHook extends ServerStartupHook {
         } catch (Exception e) {
             HookHandler.LOGGER.warn("handle weblogic startup failed", e);
         }
+        HookHandler.doCheckWithoutRequest(CheckParameter.Type.POLICY_WEBLOGIC_START,CheckParameter.EMPTY_MAP);
     }
 }
