@@ -98,7 +98,6 @@ public class CustomClassTransformer implements ClassFileTransformer {
         addHook(new WeblogicHttpInputHook());
         addHook(new WeblogicHttpOutputHook());
         addHook(new WeblogicXssHook());
-        addHook(new WeblogicConsoleCheckHook());
     }
 
     private void addHook(AbstractClassHook hook) {
