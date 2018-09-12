@@ -37,7 +37,7 @@ public class WeblogicRequestHook extends ServerRequestHook {
      */
     @Override
     public boolean isClassMatched(String className) {
-        return "weblogic/servlet/jsp/JspBase".equals(className);
+        return "weblogic/servlet/internal/WebAppServletContext".equals(className);
     }
 
     /**
@@ -47,10 +47,9 @@ public class WeblogicRequestHook extends ServerRequestHook {
      */
     @Override
     protected void hookMethod(CtClass ctClass) throws IOException, CannotCompileException, NotFoundException {
-        String hookDesc = "(Ljavax/servlet/ServletRequest;Ljavax/servlet/ServletResponse;)V";
         String srcBefore = getInvokeStaticSrc(ServerRequestHook.class, "checkRequest",
                 "$0,$1,$2", Object.class, Object.class, Object.class);
-        insertBefore(ctClass, "service", hookDesc, srcBefore);
+        insertBefore(ctClass, "execute", null, srcBefore);
     }
 
 }

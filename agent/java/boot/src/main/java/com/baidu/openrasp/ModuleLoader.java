@@ -95,7 +95,11 @@ public class ModuleLoader {
                     }else {
                         Method method = ClassLoader.getSystemClassLoader().getClass().getDeclaredMethod("appendToClassPathForInstrumentation", String.class);
                         method.setAccessible(true);
-                        method.invoke(ClassLoader.getSystemClassLoader(), originFile.getCanonicalPath());
+                        try {
+                            method.invoke(ClassLoader.getSystemClassLoader(), originFile.getCanonicalPath());
+                        } catch (Exception e) {
+                            method.invoke(ClassLoader.getSystemClassLoader(), originFile.getAbsolutePath());
+                        }
                         moduleClass = ClassLoader.getSystemClassLoader().loadClass(moduleEnterClassName);
                         module = moduleClass.newInstance();
 
