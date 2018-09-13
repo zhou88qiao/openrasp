@@ -60,7 +60,7 @@ public class WeblogicSecurityChecker extends PolicyChecker {
         String decryptedPassword = decrypt(encryptedPassword, domainPath);
         List<String> checkList = Arrays.asList(WEAK_WORDS);
         if (checkList.contains(decryptedPassword)) {
-            infos.add(new SecurityPolicyInfo(SecurityPolicyInfo.Type.MANAGER_PASSWORD, "Weblogic security baseline - detected weak password combination in " + BOOT_PROPERTIES_PATH, true));
+            infos.add(new SecurityPolicyInfo(SecurityPolicyInfo.Type.MANAGER_PASSWORD, "Weblogic security baseline - the password \"" + decryptedPassword + "\" is detected weak password combination in " + BOOT_PROPERTIES_PATH, true));
         }
     }
 
