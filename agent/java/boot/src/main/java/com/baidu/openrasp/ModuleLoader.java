@@ -34,6 +34,7 @@ import java.util.jar.JarFile;
 public class ModuleLoader {
 
     public static final String[] jars = new String[]{"rasp-engine.jar"};
+    public static final String WEBLOGIC_CLASSLOADER = "com.oracle.classloader.weblogic.LaunchClassLoader";
 
     private static String baseDirectory;
 
@@ -92,17 +93,20 @@ public class ModuleLoader {
                         method.invoke(ClassLoader.getSystemClassLoader(), originFile.toURI().toURL());
                         moduleClass = moduleClassLoader.loadClass(moduleEnterClassName);
                         module = moduleClass.newInstance();
-                    }else {
-                        Method method = ClassLoader.getSystemClassLoader().getClass().getDeclaredMethod("appendToClassPathForInstrumentation", String.class);
+                    }else if (WEBLOGIC_CLASSLOADER.equals(ClassLoader.getSystemClassLoader().getClass().getName())){
+                        moduleClassLoader = ClassLoader.getSystemClassLoader();
+                        Method method = moduleClassLoader.getClass().getDeclaredMethod("appendToClassPathForInstrumentation", String.class);
                         method.setAccessible(true);
                         try {
-                            method.invoke(ClassLoader.getSystemClassLoader(), originFile.getCanonicalPath());
+                            method.invoke(moduleClassLoader, originFile.getCanonicalPath());
                         } catch (Exception e) {
-                            method.invoke(ClassLoader.getSystemClassLoader(), originFile.getAbsolutePath());
+                            method.invoke(moduleClassLoader, originFile.getAbsolutePath());
                         }
-                        moduleClass = ClassLoader.getSystemClassLoader().loadClass(moduleEnterClassName);
+                        moduleClass = moduleClassLoader.loadClass(moduleEnterClassName);
                         module = moduleClass.newInstance();
 
+                    }else {
+                        throw new Exception("[OpenRASP] Failed to initialize module jar: " + jars[i]);
                     }
                     if (module instanceof Module) {
                         try {
