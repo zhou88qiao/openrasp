@@ -17,6 +17,7 @@
 package com.baidu.openrasp.hook.server.weblogic;
 
 import com.baidu.openrasp.hook.server.ServerRequestHook;
+import com.baidu.openrasp.tool.annotation.HookAnnotation;
 import javassist.CannotCompileException;
 import javassist.CtClass;
 import javassist.NotFoundException;
@@ -28,6 +29,7 @@ import java.io.IOException;
  * @Description: TODO
  * @date 2018/8/27 20:09
  */
+@HookAnnotation
 public class WeblogicRequestHook extends ServerRequestHook {
 
     /**

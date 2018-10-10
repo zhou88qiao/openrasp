@@ -1,4 +1,4 @@
-const version = '2018-0823-2100'
+const version = '2018-0927-1600'
 
 /*
  * Copyright 2017-2018 Baidu Inc.
@@ -58,8 +58,9 @@ var algorithmConfig = {
     sqli_policy: {
         action:  'block',
 
-        // 粗规则: 为了减少 tokenize 次数，当SQL语句包含一定特征时才进入
-        filter:  ';|\\/\\*|(?:\\d{1,2},){4}|(?:null,){4}|0x[\\da-f]{8}|\\b(information_schema|outfile|dumpfile|load_file|benchmark|pg_sleep|sleep|is_srvrolemember|updatexml|extractvalue|hex|char|chr|mid|ord|ascii|bin)\\b',
+        // 粗规则 - 为了减少 tokenize 次数，当SQL语句包含一定特征时才进入
+        // 另外，我们只需要处理增删改查的语句，虽然 show 语句也可以报错注入，但是算法2没必要处理
+        filter:  '^(select|insert|update|delete).*(;|\\/\\*|(?:\\d{1,2},){4}|(?:null,){4}|0x[\\da-f]{8}|\\b(information_schema|outfile|dumpfile|load_file|benchmark|pg_sleep|sleep|is_srvrolemember|updatexml|extractvalue|hex|char|chr|mid|ord|ascii|bin))\\b',
 
         feature: {
             // 是否禁止多语句执行，select ...; update ...;
@@ -80,8 +81,8 @@ var algorithmConfig = {
             // 是否拦截 into outfile 写文件操作
             into_outfile:       true,
 
-            // 是否拦截 information_schema 相关读取操作
-            information_schema: true
+            // 是否拦截 information_schema 相关读取操作，默认关闭
+            information_schema: false
         },
         function_blacklist: {
             // 文件操作
@@ -167,8 +168,8 @@ var algorithmConfig = {
         action: 'block'
     },
     // 任意文件下载防护 - 使用 ../../ 跳出 web 目录读取敏感文件
-    readFile_traversal: {
-        action: 'block'
+    readFile_outsideWebroot: {
+        action: 'ignore'
     },
     // 任意文件下载防护 - 读取敏感文件，最后一道防线
     readFile_unwanted: {
@@ -206,8 +207,8 @@ var algorithmConfig = {
     directory_unwanted: {
         action: 'block'
     },
-    // 文件管理器 - 列出webroot之外的目录
-    directory_outsideWebroot: {
+    // 文件管理器 - 用户输入匹配，仅当直接读取绝对路径时才检测
+    directory_userinput: {
         action: 'block'
     },
 
@@ -263,9 +264,13 @@ var algorithmConfig = {
     fileUpload_webdav: {
         action: 'block'
     },
-    // 文件上传 - Multipart 表单方式
-    fileUpload_multipart: {
+    // 文件上传 - Multipart 方式上传脚本文件
+    fileUpload_multipart_script: {
         action: 'block'
+    },
+    // 文件上传 - Multipart 方式上传 HTML/JS 等文件
+    fileUpload_multipart_html: {
+        action: 'ignore'
     },
 
     // OGNL 代码执行漏洞
@@ -290,6 +295,12 @@ var algorithmConfig = {
     transformer_deser: {
         action: 'block'
     }
+}
+
+// 1.0.0 RC1 云控支持
+if (RASP.algorithmConfig)
+{
+    algorithmConfig = RASP.algorithmConfig
 }
 
 // 将所有拦截开关设置为 log
@@ -352,6 +363,12 @@ var forcefulBrowsing = {
 // 如果你配置了非常规的扩展名映射，比如让 .abc 当做PHP脚本执行，那你可能需要增加更多扩展名
 var scriptFileRegex = /\.(aspx?|jspx?|php[345]?|phtml)\.?$/i
 
+// 正常文件
+var cleanFileRegex = /\.(jpg|jpeg|png|gif|bmp|txt)$/i
+
+// 匹配 HTML/JS 等可以用于钓鱼、domain-fronting 的文件
+var htmlFileRegex   = /\.(htm|html|js)$/i
+
 // 其他的 stream 都没啥用
 var ntfsRegex       = /::\$(DATA|INDEX)$/i
 
@@ -359,6 +376,74 @@ var ntfsRegex       = /::\$(DATA|INDEX)$/i
 var sqli_prefilter  = new RegExp(algorithmConfig.sqli_policy.filter)
 
 // 常用函数
+
+function LRU(maxLength) {
+    this.maxLength = maxLength
+    this.length = 0
+    this.head = undefined
+    this.tail = undefined
+    this.cache = {}
+}
+
+LRU.prototype.get = function (key) {
+    var node = this.cache[key]
+    if (node) {
+        this.update(node)
+        return true
+    } else {
+        return false
+    }
+}
+
+LRU.prototype.put = function (key) {
+    var node = this.cache[key]
+    if (!node) {
+        node = {
+            key: key
+        }
+    }
+    this.update(node)
+}
+
+LRU.prototype.update = function (node) {
+    if (node == this.head) {
+        return
+    } else if (node == this.tail) {
+        this.tail = node.prev
+        this.tail.next = undefined
+    } else if (node.prev && node.next) {
+        node.prev.next = node.next
+        node.next.prev = node.prev
+    } else if (!this.cache.hasOwnProperty(node.key)) {
+        this.cache[node.key] = node
+        if (this.length == 0) {
+            this.head = this.tail = node
+            this.length = 1
+            return
+        } else if (this.length == 1) {
+            this.head = node
+            this.head.next = this.tail
+            this.tail.prev = this.head
+            this.length = 2
+            return
+        } else if (++this.length > this.maxLength) {
+            delete this.cache[this.tail.key]
+            this.tail.prev.next = undefined
+            this.tail = this.tail.prev
+        }
+    } else {
+        return
+    }
+    node.prev = undefined
+    node.next = this.head
+    this.head.prev = node
+    this.head = node
+}
+
+LRU.prototype.dump = function () {
+    console.log(this.cache)
+}
+
 String.prototype.replaceAll = function(token, tokenValue) {
     // 空值判断，防止死循环
     if (! token || token.length == 0) {
@@ -443,9 +528,10 @@ function validate_stack_php(stacks) {
             break
         }
 
-        // 存在一些误报，调整下距离
+        // call_user_func/call_user_func_array 两个函数调用很频繁
+        // 必须是 call_user_func 直接调用 system/exec 等函数才拦截，否则会有很多误报
         if (stack.indexOf('@call_user_func') != -1) {
-            if (i <= 3) {
+            if (i <= 1) {
                 verdict = true
                 break
             }
@@ -515,9 +601,23 @@ function is_path_endswith_userinput(parameter, target)
         var value = parameter[key]
             value = value[0]
 
+        // 只处理字符串类型的
+        if (typeof value != 'string') {
+            return
+        }
+
         // 参数必须有跳出目录，或者是绝对路径
-        if ((has_traversal(value) || is_absolute_path(value))
-            && (value == target || target.endsWith(value)))
+        if ((value == target || target.endsWith(value)) 
+            && (has_traversal(value) || is_absolute_path(value)))
+        {
+            verdict = true
+            return true
+        }
+
+        // 如果应用做了特殊处理， 比如传入 file:///etc/passwd，实际看到的是 /etc/passwd
+        if (value.startsWith('file://') && 
+            is_absolute_path(target) && 
+            value.endsWith(target))
         {
             verdict = true
             return true
@@ -569,48 +669,12 @@ if (RASP.get_jsengine() !== 'v8') {
     // 对于PHP + V8，性能还不错，我们保留JS检测逻辑
 
     // v8 全局SQL结果缓存
-    var LRU = {
-        cache: {},
-        stack: [],
-        max:   algorithmConfig.cache.sqli.capacity,
-
-        // 查询缓存，如果在则移动到队首
-        lookup: function(key) {
-            var found = this.cache.hasOwnProperty(key)
-            if (found) {
-                var idx = this.stack.indexOf(key)
-
-                this.cache[key] ++
-                this.stack.splice(idx, 1)
-                this.stack.unshift(key)
-            }
-
-            return found
-        },
-
-        // 增加缓存，如果超过大小则删除末尾元素
-        put: function(key) {
-            this.stack.push(key)
-            this.cache[key] = 1
-
-            if (this.stack.length > this.max) {
-                var tail = this.stack.pop()
-                delete this.cache[tail]
-            }
-        },
-
-        // 调试函数，用于打印内部信息
-        dump: function() {
-            console.log (this.cache)
-            console.log (this.stack)
-            console.log ('')
-        }
-    }
+    var lru = new LRU(algorithmConfig.cache.sqli.capacity)
 
     plugin.register('sql', function (params, context) {
 
         // 缓存检查
-        if (LRU.lookup(params.query)) {
+        if (lru.get(params.query)) {
             return clean
         }
 
@@ -713,7 +777,7 @@ if (RASP.get_jsengine() !== 'v8') {
 
             // 懒加载，需要时才处理
             if (raw_tokens.length == 0) {
-                var query_lc = params.query.toLowerCase()
+                var query_lc = params.query.toLowerCase().trim()
 
                 if (sqli_prefilter.test(query_lc)) {
                     raw_tokens = RASP.sql_tokenize(params.query, params.server)
@@ -810,7 +874,7 @@ if (RASP.get_jsengine() !== 'v8') {
         }
 
         // 加入缓存，对 prepared sql 特别有效
-        LRU.put(params.query)
+        lru.put(params.query)
         return clean
     })
 
@@ -922,6 +986,7 @@ plugin.register('directory', function (params, context) {
     var realpath    = params.realpath
     var appBasePath = context.appBasePath
     var server      = context.server
+    var parameter   = context.parameter
 
     // 算法1 - 读取敏感目录
     if (algorithmConfig.directory_unwanted.action != 'ignore')
@@ -937,16 +1002,23 @@ plugin.register('directory', function (params, context) {
         }
     }
 
-    // 算法2 - 使用至少2个/../，且跳出web目录
-    if (algorithmConfig.directory_outsideWebroot.action != 'ignore')
+    // 算法2 - 用户输入匹配。主要用户检测 webshell 文件管理器，直接读取绝对路径的情况
+    if (algorithmConfig.directory_userinput.action != 'ignore')
     {
-        if (is_outside_webroot(appBasePath, realpath, path))
+        // 去除结尾的斜线, /usr/ == /usr
+        var path_noslash = path
+        if (path_noslash.endsWith('/'))
+        {
+            path_noslash = path_noslash.substr(0, path_noslash.length - 1)
+        }
+
+        if (path_noslash == realpath && is_from_userinput(parameter, path))
         {
             return {
-                action:     algorithmConfig.directory_outsideWebroot.action,
-                message:    _("Directory traversal - Accessing directory outside webroot (%1%), directory is %2%", [appBasePath, realpath]),
+                action:     algorithmConfig.directory_userinput.action,
+                message:    _("WebShell detected - Using File Manager function to access a folder: %1%", [realpath]),
                 confidence: 90
-            }
+            }            
         }
     }
 
@@ -1049,16 +1121,15 @@ plugin.register('readFile', function (params, context) {
 
     //
     // 算法3: 检查文件遍历，看是否超出web目录范围
-    // e.g 使用 ../../../etc/passwd 跨目录读取文件
     //
-    if (algorithmConfig.readFile_traversal.action != 'ignore')
+    if (algorithmConfig.readFile_outsideWebroot.action != 'ignore')
     {
         var path        = params.path
         var appBasePath = context.appBasePath
 
         if (is_outside_webroot(appBasePath, params.realpath, path)) {
             return {
-                action:     algorithmConfig.readFile_traversal.action,
+                action:     algorithmConfig.readFile_outsideWebroot.action,
                 message:    _("Path traversal - accessing files outside webroot (%1%), file is %2%", [appBasePath, params.realpath]),
                 confidence: 90
             }
@@ -1129,8 +1200,14 @@ plugin.register('include', function (params, context) {
     return clean
 })
 
+// TODO: 1.0.0 RC1 之后改成 agent 实现，通用的LRU
+var writeFileLru = new LRU(20)
 
 plugin.register('writeFile', function (params, context) {
+
+    if (writeFileLru.get(params.realpath)) {
+        return clean
+    }
 
     // 写 NTFS 流文件，肯定不正常
     if (algorithmConfig.writeFile_NTFS.action != 'ignore')
@@ -1169,34 +1246,53 @@ plugin.register('writeFile', function (params, context) {
             }
         }
     }
+
+    writeFileLru.put(params.realpath)
     return clean
 })
 
 
-if (algorithmConfig.fileUpload_multipart.action != 'ignore')
-{
-    // 禁止使用 multipart 上传脚本文件，或者 apache/php 服务器配置文件
-    plugin.register('fileUpload', function (params, context) {
 
-        if (scriptFileRegex.test(params.filename) || ntfsRegex.test(params.filename)) {
+plugin.register('fileUpload', function (params, context) {
+
+    // 是否禁止使用 multipart 上传脚本文件，或者 apache/php 服务器配置文件
+    if (algorithmConfig.fileUpload_multipart_script.action != 'ignore') 
+    {
+        if (scriptFileRegex.test(params.filename) || ntfsRegex.test(params.filename)) 
+        {
             return {
-                action:     algorithmConfig.fileUpload_multipart.action,
-                message:    _("File upload - Uploading a server-side script file with multipart/form-data protocol", [params.filename]),
+                action:     algorithmConfig.fileUpload_multipart_script.action,
+                message:    _("File upload - Uploading a server-side script file with multipart/form-data protocol, filename: %1%", [params.filename]),
                 confidence: 90
             }
         }
 
-        if (params.filename == ".htaccess" || params.filename == ".user.ini") {
+        if (params.filename == ".htaccess" || params.filename == ".user.ini") 
+        {
             return {
-                action:     algorithmConfig.fileUpload_multipart.action,
-                message:    _("File upload - Uploading a server-side config file with multipart/form-data protocol", [params.filename]),
+                action:     algorithmConfig.fileUpload_multipart_script.action,
+                message:    _("File upload - Uploading a server-side config file with multipart/form-data protocol, filename: %1%", [params.filename]),
                 confidence: 90
             }
         }
+    }
 
-        return clean
-    })
-}
+    // 是否禁止 HTML/JS 文件
+    if (algorithmConfig.fileUpload_multipart_html.action != 'ignore') 
+    {
+        if (htmlFileRegex.test(params.filename)) 
+        {
+            return {
+                action:     algorithmConfig.fileUpload_multipart_html.action,
+                message:    _("File upload - Uploading a HTML/JS file with multipart/form-data protocol", [params.filename]),
+                confidence: 90
+            }
+        }
+    }    
+
+    return clean
+})
+
 
 
 if (algorithmConfig.fileUpload_webdav.action != 'ignore')
@@ -1223,14 +1319,8 @@ if (algorithmConfig.rename_webshell.action != 'ignore')
 {
     plugin.register('rename', function (params, context) {
 
-        // 源文件必须有扩展名，避免误报，e.g hello.txt
-        if (! has_file_extension(params.source))
-        {
-            return clean
-        }
-
-        // 源文件不是脚本，且目标文件是脚本，判定为重命名方式写后门
-        if (! scriptFileRegex.test(params.source) && scriptFileRegex.test(params.dest))
+        // 源文件是干净的文件，目标文件是脚本文件，判定为重命名方式写后门
+        if (cleanFileRegex.test(params.source) && scriptFileRegex.test(params.dest))
         {
             return {
                 action:    algorithmConfig.rename_webshell.action,
@@ -1261,7 +1351,8 @@ plugin.register('command', function (params, context) {
                 'java.lang.reflect.Method.invoke':                                              _("Reflected command execution - Unknown vulnerability detected"),
                 'ognl.OgnlRuntime.invokeMethod':                                                _("Reflected command execution - Using OGNL library"),
                 'com.thoughtworks.xstream.XStream.unmarshal':                                   _("Reflected command execution - Using xstream library"),
-                'org.apache.commons.collections4.functors.InvokerTransformer.transform':        _("Reflected command execution - Using Transformer library"),
+                'org.apache.commons.collections4.functors.InvokerTransformer.transform':        _("Reflected command execution - Using Transformer library (v4)"),
+                'org.apache.commons.collections.functors.InvokerTransformer.transform':         _("Reflected command execution - Using Transformer library"),
                 'org.jolokia.jsr160.Jsr160RequestDispatcher.dispatchRequest':                   _("Reflected command execution - Using JNDI library"),
                 'com.alibaba.fastjson.parser.deserializer.JavaBeanDeserializer.deserialze':     _("Reflected command execution - Using fastjson library"),
                 'org.springframework.expression.spel.support.ReflectiveMethodExecutor.execute': _("Reflected command execution - Using SpEL expressions"),
@@ -1387,12 +1478,21 @@ plugin.register('xxe', function (params, context) {
         //
         // 相对路径容易误报, e.g
         // file://xwork.dtd
-        if (algorithmConfig.xxe_file.action != 'ignore') {
-            if (address.length > 0 && protocol === 'file' && address[0] == '/') {
-                return {
-                    action:     algorithmConfig.xxe_file.action,
-                    message:    _("XXE - Accessing file %1%", [address]),
-                    confidence: 90
+        if (algorithmConfig.xxe_file.action != 'ignore') 
+        {
+            if (address.length > 0 && protocol === 'file' && address[0] == '/') 
+            {
+                var address_lc = address.toLowerCase()
+
+                // 过滤掉 xml、dtd
+                if (! address_lc.endsWith('.xml') && 
+                    ! address_lc.endsWith('.dtd')) 
+                {
+                    return {
+                        action:     algorithmConfig.xxe_file.action,
+                        message:    _("XXE - Accessing file %1%", [address]),
+                        confidence: 90
+                    }
                 }
             } 
         }
@@ -1468,5 +1568,5 @@ if (algorithmConfig.transformer_deser.action != 'ignore') {
     })
 }
 
-plugin.log('OpenRASP official plugin: Initialized')
+plugin.log('OpenRASP official plugin: Initialized, version', version)
 

@@ -21,9 +21,12 @@ import com.baidu.openrasp.plugin.checker.js.JsChecker;
 import com.baidu.openrasp.plugin.checker.local.SSRFChecker;
 import com.baidu.openrasp.plugin.checker.local.SqlResultChecker;
 import com.baidu.openrasp.plugin.checker.local.SqlStatementChecker;
+import com.baidu.openrasp.plugin.checker.policy.serverpolicy.JBossSecurityChecker;
 import com.baidu.openrasp.plugin.checker.policy.SqlConnectionChecker;
-import com.baidu.openrasp.plugin.checker.policy.TomcatSecurityChecker;
 import com.baidu.openrasp.plugin.checker.policy.WeblogicSecurityChecker;
+import com.baidu.openrasp.plugin.checker.policy.serverpolicy.JettySecurityChecker;
+import com.baidu.openrasp.plugin.checker.policy.serverpolicy.ResinSecurityChecker;
+import com.baidu.openrasp.plugin.checker.policy.serverpolicy.TomcatSecurityChecker;
 import com.baidu.openrasp.request.AbstractRequest;
 import com.google.gson.Gson;
 
@@ -44,14 +47,15 @@ public class CheckParameter {
         COMMAND("command", new JsChecker()),
         DIRECTORY("directory", new JsChecker()),
         REQUEST("request", new JsChecker()),
+        DUBBOREQUEST("dubboRequest", new JsChecker()),
         READFILE("readFile", new JsChecker()),
         WRITEFILE("writeFile", new JsChecker()),
         FILEUPLOAD("fileUpload", new JsChecker()),
-        FILERENAME("rename",new JsChecker()),
+        FILERENAME("rename", new JsChecker()),
         XXE("xxe", new JsChecker()),
         OGNL("ognl", new JsChecker()),
         DESERIALIZATION("deserialization", new JsChecker()),
-//        REFLECTION("reflection", new JsChecker()),
+        //        REFLECTION("reflection", new JsChecker()),
         WEBDAV("webdav", new JsChecker()),
         INCLUDE("include", new JsChecker()),
         SSRF("ssrf", new SSRFChecker()),
@@ -62,7 +66,10 @@ public class CheckParameter {
         // 安全基线检测
         POLICY_SQL_CONNECTION("sqlConnection", new SqlConnectionChecker()),
         POLICY_TOMCAT_START("tomcatStart", new TomcatSecurityChecker()),
-        POLICY_WEBLOGIC_START("weblogicStart",new WeblogicSecurityChecker());
+        POLICY_WEBLOGIC_START("weblogicStart",new WeblogicSecurityChecker()),
+        POLICY_JBOSS_START("jbossStart", new JBossSecurityChecker()),
+        POLICY_JETTY_START("jettyStart", new JettySecurityChecker()),
+        POLICY_RESIN_START("resinStart", new ResinSecurityChecker());
 
         String name;
         Checker checker;
