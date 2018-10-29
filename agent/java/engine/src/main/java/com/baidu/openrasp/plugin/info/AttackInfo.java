@@ -19,6 +19,7 @@ package com.baidu.openrasp.plugin.info;
 import com.baidu.openrasp.plugin.checker.CheckParameter;
 import com.baidu.openrasp.request.AbstractRequest;
 import com.baidu.openrasp.tool.OSUtil;
+import com.baidu.openrasp.tool.decomplie.Decompiler;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -138,6 +139,10 @@ public class AttackInfo extends EventInfo {
             // 攻击的 Referrer 头
             String referer = request.getHeader("Referer");
             info.put("referer", referer == null ? "" : referer);
+            String appBasePath = request.getAppBasePath();
+            if (!appBasePath.isEmpty()){
+                info.put("user_src", Decompiler.getAlarmPoint(trace,appBasePath));
+            }
         }
 
         return info;

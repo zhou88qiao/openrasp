@@ -119,6 +119,10 @@
                             </transformers>
                             <relocations>
                                 <relocation>
+                                    <pattern>com.strobel</pattern>
+                                    <shadedPattern>com.baidu.openrasp.strobel</shadedPattern>
+                                </relocation>
+                                <relocation>
                                     <pattern>org.apache.commons.lang3</pattern>
                                     <shadedPattern>com.baidu.openrasp</shadedPattern>
                                 </relocation>
