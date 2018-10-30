@@ -17,6 +17,7 @@
 package com.baidu.openrasp.hook.server.weblogic;
 
 import com.baidu.openrasp.hook.server.ServerOutputCloseHook;
+import com.baidu.openrasp.tool.annotation.HookAnnotation;
 import javassist.CannotCompileException;
 import javassist.CtClass;
 import javassist.NotFoundException;
@@ -27,6 +28,7 @@ import javassist.NotFoundException;
  * @author: anyang
  * @create: 2018/09/05 13:54
  */
+@HookAnnotation
 public class WeblogicHttpOutputHook extends ServerOutputCloseHook {
 
 

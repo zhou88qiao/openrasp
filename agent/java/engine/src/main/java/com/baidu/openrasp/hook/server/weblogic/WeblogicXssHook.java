@@ -18,6 +18,7 @@ package com.baidu.openrasp.hook.server.weblogic;
 
 import com.baidu.openrasp.hook.AbstractClassHook;
 import com.baidu.openrasp.tool.Reflection;
+import com.baidu.openrasp.tool.annotation.HookAnnotation;
 import javassist.CannotCompileException;
 import javassist.CtClass;
 import javassist.NotFoundException;
@@ -31,6 +32,7 @@ import java.nio.ByteBuffer;
  * @author: anyang
  * @create: 2018/09/05 15:06
  */
+@HookAnnotation
 public class WeblogicXssHook extends AbstractClassHook {
     @Override
     public boolean isClassMatched(String className) {

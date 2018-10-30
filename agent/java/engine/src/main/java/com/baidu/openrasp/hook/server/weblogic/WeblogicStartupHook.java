@@ -20,6 +20,7 @@ import com.baidu.openrasp.HookHandler;
 import com.baidu.openrasp.hook.server.ServerStartupHook;
 import com.baidu.openrasp.plugin.checker.CheckParameter;
 import com.baidu.openrasp.tool.Reflection;
+import com.baidu.openrasp.tool.annotation.HookAnnotation;
 import com.baidu.openrasp.tool.model.ApplicationModel;
 import javassist.CannotCompileException;
 import javassist.CtClass;
@@ -32,6 +33,7 @@ import java.io.IOException;
  * @Description: weblogic启动hook点
  * @date 2018/8/27 11:50
  */
+@HookAnnotation
 public class WeblogicStartupHook extends ServerStartupHook {
     @Override
     public boolean isClassMatched(String className) {

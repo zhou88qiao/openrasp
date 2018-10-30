@@ -17,6 +17,7 @@
 package com.baidu.openrasp.hook.server.weblogic;
 
 import com.baidu.openrasp.hook.server.ServerParamHook;
+import com.baidu.openrasp.tool.annotation.HookAnnotation;
 import javassist.CannotCompileException;
 import javassist.CtClass;
 import javassist.NotFoundException;
@@ -26,6 +27,7 @@ import javassist.NotFoundException;
  * @Description: TODO
  * @date 2018/8/27 16:40
  */
+@HookAnnotation
 public class WeblogicParseParamHook extends ServerParamHook {
 
     @Override

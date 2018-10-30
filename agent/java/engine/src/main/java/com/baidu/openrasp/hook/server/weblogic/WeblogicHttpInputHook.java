@@ -18,6 +18,7 @@ package com.baidu.openrasp.hook.server.weblogic;
 
 import com.baidu.openrasp.HookHandler;
 import com.baidu.openrasp.hook.server.ServerInputHook;
+import com.baidu.openrasp.tool.annotation.HookAnnotation;
 import javassist.CannotCompileException;
 import javassist.CtClass;
 import javassist.NotFoundException;
@@ -29,6 +30,7 @@ import java.io.IOException;
  * @Description: 获取weblogic的请求body
  * @date 2018/8/27 20:29
  */
+@HookAnnotation
 public class WeblogicHttpInputHook extends ServerInputHook {
 
     @Override
