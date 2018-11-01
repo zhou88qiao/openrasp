@@ -23,18 +23,21 @@ import javassist.CtClass;
 import javassist.NotFoundException;
 
 /**
- * @program openrasp
  * @description: 插入用户自定义脚本
  * @author: anyang
  * @create: 2018/09/05 13:54
  */
 @HookAnnotation
 public class WeblogicHttpOutputHook extends ServerOutputCloseHook {
-
+    public static String clazzName = null;
 
     @Override
     public boolean isClassMatched(String className) {
-        return "weblogic/servlet/internal/ServletOutputStreamImpl".equals(className);
+        if ("weblogic/servlet/internal/ServletOutputStreamImpl".equals(className)){
+            clazzName = className;
+            return true;
+        }
+        return false;
     }
 
     @Override
