@@ -18,12 +18,6 @@ package com.baidu.openrasp.hook.server;
 
 import com.baidu.openrasp.HookHandler;
 import com.baidu.openrasp.hook.AbstractClassHook;
-import javassist.CannotCompileException;
-import javassist.CtClass;
-import javassist.NotFoundException;
-
-import java.io.IOException;
-
 /**
  * Created by tyy on 18-2-8.
  *

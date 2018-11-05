@@ -21,6 +21,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -33,6 +34,7 @@ import java.util.jar.JarFile;
 public class ModuleLoader {
 
     public static final String[] jars = new String[]{"rasp-engine.jar"};
+    public static final String WEBLOGIC_CLASSLOADER = "com.oracle.classloader.weblogic.LaunchClassLoader";
 
     private static String baseDirectory;
 
@@ -83,12 +85,29 @@ public class ModuleLoader {
                 String moduleEnterClassName = attributes.getValue("Rasp-Module-Class");
                 if (moduleName != null && moduleEnterClassName != null
                         && !moduleName.equals("") && !moduleEnterClassName.equals("")) {
-                    Method method = Class.forName("java.net.URLClassLoader").getDeclaredMethod("addURL", URL.class);
-                    method.setAccessible(true);
-                    method.invoke(moduleClassLoader, originFile.toURI().toURL());
-                    method.invoke(ClassLoader.getSystemClassLoader(), originFile.toURI().toURL());
-                    Class moduleClass = moduleClassLoader.loadClass(moduleEnterClassName);
-                    module = moduleClass.newInstance();
+                    Class moduleClass;
+                    if (ClassLoader.getSystemClassLoader() instanceof URLClassLoader){
+                        Method method = Class.forName("java.net.URLClassLoader").getDeclaredMethod("addURL", URL.class);
+                        method.setAccessible(true);
+                        method.invoke(moduleClassLoader, originFile.toURI().toURL());
+                        method.invoke(ClassLoader.getSystemClassLoader(), originFile.toURI().toURL());
+                        moduleClass = moduleClassLoader.loadClass(moduleEnterClassName);
+                        module = moduleClass.newInstance();
+                    }else if (WEBLOGIC_CLASSLOADER.equals(ClassLoader.getSystemClassLoader().getClass().getName())){
+                        moduleClassLoader = ClassLoader.getSystemClassLoader();
+                        Method method = moduleClassLoader.getClass().getDeclaredMethod("appendToClassPathForInstrumentation", String.class);
+                        method.setAccessible(true);
+                        try {
+                            method.invoke(moduleClassLoader, originFile.getCanonicalPath());
+                        } catch (Exception e) {
+                            method.invoke(moduleClassLoader, originFile.getAbsolutePath());
+                        }
+                        moduleClass = moduleClassLoader.loadClass(moduleEnterClassName);
+                        module = moduleClass.newInstance();
+
+                    }else {
+                        throw new Exception("[OpenRASP] Failed to initialize module jar: " + jars[i]);
+                    }
                     if (module instanceof Module) {
                         try {
                             moduleClass.getMethod("start", String.class, Instrumentation.class).invoke(module, agentArg, inst);

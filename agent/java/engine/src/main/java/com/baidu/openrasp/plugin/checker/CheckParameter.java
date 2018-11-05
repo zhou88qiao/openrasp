@@ -23,6 +23,10 @@ import com.baidu.openrasp.plugin.checker.local.SqlResultChecker;
 import com.baidu.openrasp.plugin.checker.local.SqlStatementChecker;
 import com.baidu.openrasp.plugin.checker.policy.serverpolicy.*;
 import com.baidu.openrasp.plugin.checker.policy.SqlConnectionChecker;
+import com.baidu.openrasp.plugin.checker.policy.WeblogicSecurityChecker;
+import com.baidu.openrasp.plugin.checker.policy.serverpolicy.JettySecurityChecker;
+import com.baidu.openrasp.plugin.checker.policy.serverpolicy.ResinSecurityChecker;
+import com.baidu.openrasp.plugin.checker.policy.serverpolicy.TomcatSecurityChecker;
 import com.baidu.openrasp.request.AbstractRequest;
 import com.google.gson.Gson;
 
@@ -62,6 +66,7 @@ public class CheckParameter {
         // 安全基线检测
         POLICY_SQL_CONNECTION("sqlConnection", new SqlConnectionChecker()),
         POLICY_TOMCAT_START("tomcatStart", new TomcatSecurityChecker()),
+        POLICY_WEBLOGIC_START("weblogicStart",new WeblogicSecurityChecker()),
         POLICY_JBOSS_START("jbossStart", new JBossSecurityChecker()),
         POLICY_JETTY_START("jettyStart", new JettySecurityChecker()),
         POLICY_RESIN_START("resinStart", new ResinSecurityChecker()),

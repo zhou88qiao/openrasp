@@ -73,8 +73,8 @@ public class Reflection {
     /**
      * 反射获取父类对象的字段包括私有的
      *
-     * @param paramClass    被提取字段的对象
-     * @param fieldName 字段名称
+     * @param paramClass 被提取字段的对象
+     * @param fieldName  字段名称
      * @return 字段的值
      */
     public static Object getSuperField(Object paramClass, String fieldName) {
