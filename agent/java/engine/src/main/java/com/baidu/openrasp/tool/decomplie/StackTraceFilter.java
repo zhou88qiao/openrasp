@@ -28,8 +28,8 @@ import java.util.Set;
  * @create: 2018/10/21 15:07
  */
 public class StackTraceFilter {
-    public static Map<String, String> class_method = new HashMap<String, String>();
-    public static Map<String, Integer> class_lineNumber = new HashMap<String, Integer>();
+    public Map<String, String> class_method = new HashMap<String, String>();
+    public Map<String, Integer> class_lineNumber = new HashMap<String, Integer>();
     private static Set<String> fiterSet = new HashSet<String>();
 
     static {
@@ -54,7 +54,7 @@ public class StackTraceFilter {
         fiterSet.add("net.");
     }
 
-    public static void filter(StackTraceElement[] trace) {
+    public void filter(StackTraceElement[] trace) {
         for (StackTraceElement element : trace) {
             boolean isMatched = false;
             for (String filterString : fiterSet) {
