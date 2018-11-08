@@ -26,6 +26,8 @@
 #include "third_party/rapidjson/stringbuffer.h"
 #include "third_party/rapidjson/writer.h"
 
+using namespace std;
+
 namespace openrasp
 {
 
