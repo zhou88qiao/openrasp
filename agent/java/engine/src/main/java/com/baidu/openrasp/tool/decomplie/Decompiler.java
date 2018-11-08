@@ -98,7 +98,7 @@ public class Decompiler {
                     readUsingZipFile(src, dest, entry.getKey());
                     paths.add(dest);
                 } catch (Exception e) {
-                    LOGGER.warn("weblogic get class file failsed for decompile",e);
+                    LOGGER.warn("weblogic get class file failsed for decompile", e);
                 }
             } else {
                 paths = searchFiles(new File(appBasePath), entry.getKey());
@@ -106,9 +106,10 @@ public class Decompiler {
             for (String path : paths) {
                 File originFile = new File(path);
                 if (decompileCache.isContainsKey(description)) {
-                    if (fileLastModify.isContainsKey(entry.getKey()) && fileLastModify.get(entry.getKey()) == originFile.lastModified())
+                    if (fileLastModify.isContainsKey(entry.getKey()) && fileLastModify.get(entry.getKey()) == originFile.lastModified()) {
                         result.put(description, decompileCache.get(description));
-                    continue;
+                        continue;
+                    }
                 }
                 String src = Decompiler.getDecompilerString(originFile);
                 if (!src.isEmpty()) {
@@ -172,7 +173,7 @@ public class Decompiler {
         }
     }
 
-    private static void extractEntry(InputStream is, String dst) throws Exception{
+    private static void extractEntry(InputStream is, String dst) throws Exception {
         File file = new File(dst);
         file.getParentFile().mkdirs();
         FileOutputStream fos = new FileOutputStream(dst);
