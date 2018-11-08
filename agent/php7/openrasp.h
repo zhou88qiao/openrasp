@@ -36,7 +36,9 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-
+#if HAVE_DECL_ISFINITE
+#define isfinite std::isfinite
+#endif
 #include "openrasp_config.h"
 
 typedef enum openrasp_error_code_t
