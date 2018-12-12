@@ -150,8 +150,8 @@ public class App {
                 "  java -jar RaspInstall.jar -uninstall /tomcat/\n" +
                 "\n" +
                 "Additional command line arguments: \n" +
-                "  -install      Install OpenRASP\n" +
-                "  -uninstall    Uninstall OpenRASP\n" +
+                "  -install      Specify application server path\n" +
+                "  -uninstall    Specify application server path\n" +
                 "  -appid        Value of cloud.appid\n" +
                 "  -backendurl   Value of cloud.address\n" +
                 "  -appsecret    Value of cloud.appsecret\n" +
